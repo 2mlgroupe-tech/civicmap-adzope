@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CivicMap CI — Signaler un problème</title>
+
+<style>
+  :root { --green:#1A7A4A; --green-light:#23A065; --yellow:#F4C842; --cream:#F9F5EE; --dark:#141414; --grey:#888; --border:#E8E3D9; --red:#E74C3C; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { font-family:system-ui,sans-serif; background:var(--cream); color:var(--dark); min-height:100vh; padding-bottom:40px; }
+  .topbar { background:var(--green); padding:18px 20px 16px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:100; box-shadow:0 2px 16px rgba(0,0,0,0.15); }
+  .logo { font-family:'Georgia',serif; font-weight:800; font-size:20px; color:white; }
+  .logo span { color:var(--yellow); }
+  .badge { margin-left:auto; background:rgba(255,255,255,0.15); color:white; font-size:11px; font-weight:500; padding:4px 10px; border-radius:20px; }
+  .hero { background:var(--green); padding:0 20px 32px; color:white; }
+  .hero h1 { font-family:'Georgia',serif; font-size:26px; font-weight:800; line-height:1.15; margin-bottom:8px; }
+  .hero h1 em { color:var(--yellow); font-style:normal; }
+  .hero p { font-size:14px; opacity:0.8; line-height:1.5; }
+  .wave { background:var(--green); line-height:0; }
+  .wave svg { display:block; width:100%; }
+  .form-wrap { padding:8px 16px 0; max-width:520px; margin:0 auto; }
+  .steps-bar { display:flex; gap:6px; margin-bottom:24px; align-items:center; }
+  .step-dot { height:4px; border-radius:4px; flex:1; background:var(--border); transition:background 0.4s; }
+  .step-dot.active { background:var(--green); }
+  .step-dot.done { background:var(--green-light); }
+  .step-label { font-size:11px; color:var(--grey); font-weight:500; white-space:nowrap; }
+  .card { background:white; border-radius:16px; padding:22px 20px; margin-bottom:14px; border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,0.05); }
+  .card-title { font-family:'Georgia',serif; font-size:15px; font-weight:700; color:var(--dark); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+  .card-title .icon { width:28px; height:28px; background:#EEF7F2; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:14px; }
+  .cat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .cat-btn { border:2px solid var(--border); border-radius:12px; padding:14px 8px 12px; background:white; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px; transition:all 0.2s; }
+  .cat-btn .cat-icon { font-size:26px; line-height:1; }
+  .cat-btn .cat-label { font-size:11px; font-weight:500; color:#555; text-align:center; line-height:1.2; }
+  .cat-btn.selected { border-color:var(--green); background:#EEF7F2; }
+  .cat-btn.selected .cat-label { color:var(--green); font-weight:600; }
+  .urgency-row { display:flex; gap:8px; }
+  .urg-btn { flex:1; border:2px solid var(--border); border-radius:10px; padding:10px 4px; background:white; cursor:pointer; font-size:12px; font-weight:500; color:#555; transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:5px; font-family:system-ui,sans-serif; }
+  .urg-btn.faible.selected { border-color:#27AE60; background:#EAFAF1; color:#27AE60; }
+  .urg-btn.moyen.selected  { border-color:#F39C12; background:#FEF9E7; color:#F39C12; }
+  .urg-btn.urgent.selected { border-color:var(--red); background:#FDEDEC; color:var(--red); }
+  .photo-zone { border:2px dashed var(--border); border-radius:12px; padding:28px 16px; text-align:center; cursor:pointer; transition:all 0.2s; position:relative; overflow:hidden; }
+  .photo-zone:hover { border-color:var(--green); background:#f8fdf9; }
+  .photo-zone input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+  .photo-zone .ph-icon { font-size:36px; margin-bottom:8px; }
+  .photo-zone .ph-text { font-size:13px; color:var(--grey); }
+  .photo-zone .ph-sub  { font-size:11px; color:#bbb; margin-top:4px; }
+  #photo-preview { display:none; width:100%; border-radius:10px; max-height:200px; object-fit:cover; margin-top:10px; }
+  textarea { width:100%; border:1.5px solid var(--border); border-radius:10px; padding:12px 14px; font-family:system-ui,sans-serif; font-size:14px; color:var(--dark); resize:none; transition:border-color 0.2s; background:#fafafa; line-height:1.5; }
+  textarea:focus { outline:none; border-color:var(--green); background:white; }
+  textarea::placeholder { color:#bbb; }
+  .loc-box { border:1.5px solid var(--border); border-radius:10px; padding:12px 14px; background:#fafafa; display:flex; align-items:center; gap:10px; cursor:pointer; transition:all 0.2s; }
+  .loc-box:hover { border-color:var(--green); }
+  .loc-box .loc-icon { font-size:20px; }
+  .loc-box .loc-text { flex:1; }
+  .loc-box .loc-title { font-size:13px; font-weight:500; color:var(--dark); }
+  .loc-box .loc-sub   { font-size:11px; color:var(--grey); margin-top:1px; }
+  .loc-box .loc-arrow { color:var(--grey); font-size:16px; }
+  .loc-box.located { border-color:var(--green); background:#EEF7F2; }
+  .loc-box.located .loc-title { color:var(--green); }
+  input[type="text"] { width:100%; border:1.5px solid var(--border); border-radius:10px; padding:12px 14px; font-family:system-ui,sans-serif; font-size:14px; color:var(--dark); background:#fafafa; transition:border-color 0.2s; }
+  input[type="text"]:focus { outline:none; border-color:var(--green); background:white; }
+  input[type="text"]::placeholder { color:#bbb; }
+  .optional-tag { font-size:10px; color:var(--grey); background:#f0f0f0; padding:2px 7px; border-radius:10px; margin-left:6px; }
+  .submit-btn { width:100%; background:var(--green); color:white; border:none; border-radius:14px; padding:18px; font-family:'Georgia',serif; font-size:16px; font-weight:700; cursor:pointer; margin-top:6px; transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 20px rgba(26,122,74,0.3); }
+  .submit-btn:hover { background:var(--green-light); }
+  .submit-btn:disabled { background:#aaa; box-shadow:none; cursor:not-allowed; }
+  .privacy-note { text-align:center; font-size:11px; color:var(--grey); margin-top:12px; line-height:1.5; }
+  #success-screen { display:none; position:fixed; inset:0; background:var(--green); z-index:999; flex-direction:column; align-items:center; justify-content:center; padding:40px 24px; text-align:center; color:white; }
+  #success-screen .big-icon { font-size:72px; margin-bottom:24px; animation:pop 0.5s ease; }
+  #success-screen h2 { font-family:'Georgia',serif; font-size:28px; font-weight:800; margin-bottom:12px; }
+  #success-screen p { font-size:15px; opacity:0.85; line-height:1.6; max-width:300px; }
+  #success-screen .ref { margin-top:28px; background:rgba(255,255,255,0.15); border-radius:12px; padding:16px 24px; }
+  #success-screen .ref .ref-label { font-size:11px; opacity:0.7; margin-bottom:4px; }
+  #success-screen .ref .ref-num { font-family:'Georgia',serif; font-size:22px; font-weight:700; color:var(--yellow); }
+  .new-btn { margin-top:32px; background:white; color:var(--green); border:none; border-radius:12px; padding:14px 32px; font-family:'Georgia',serif; font-size:15px; font-weight:700; cursor:pointer; }
+  @keyframes pop { 0%{transform:scale(0)} 70%{transform:scale(1.1)} 100%{transform:scale(1)} }
+
+  /* SOS BUTTON */
+  .sos-banner {
+    background:linear-gradient(135deg,#b71c1c,#E74C3C);
+    border-radius:16px; padding:18px 20px; margin-bottom:14px;
+    display:flex; align-items:center; gap:14px;
+    cursor:pointer; border:none; width:100%;
+    box-shadow:0 4px 20px rgba(231,76,60,0.4);
+    animation:sos-pulse 2s infinite;
+  }
+  @keyframes sos-pulse { 0%,100%{box-shadow:0 4px 20px rgba(231,76,60,0.4)} 50%{box-shadow:0 4px 32px rgba(231,76,60,0.7)} }
+  .sos-icon { font-size:36px; flex-shrink:0; }
+  .sos-text { text-align:left; }
+  .sos-title { font-family:'Georgia',serif; font-size:18px; font-weight:700; color:white; line-height:1.2; }
+  .sos-sub { font-size:12px; color:rgba(255,255,255,0.8); margin-top:3px; }
+  .sos-arrow { margin-left:auto; font-size:22px; color:rgba(255,255,255,0.7); flex-shrink:0; }
+  #sos-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:999; align-items:flex-end; justify-content:center; }
+  #sos-modal.open { display:flex; }
+  .sos-sheet { background:white; border-radius:24px 24px 0 0; padding:24px 20px 40px; width:100%; max-width:520px; animation:slideUp 0.3s ease; }
+  @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+  .sos-handle { width:40px; height:4px; background:#ddd; border-radius:4px; margin:0 auto 20px; }
+  .sos-sheet-title { font-family:'Georgia',serif; font-size:20px; font-weight:700; color:#b71c1c; text-align:center; margin-bottom:6px; }
+  .sos-sheet-sub { font-size:13px; color:var(--grey); text-align:center; margin-bottom:20px; }
+  .sos-types { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+  .sos-type-btn { border:2px solid #fee; border-radius:14px; padding:16px; background:white; cursor:pointer; display:flex; align-items:center; gap:14px; transition:all 0.2s; text-align:left; width:100%; }
+  .sos-type-btn:hover, .sos-type-btn.selected { border-color:#E74C3C; background:#FDEDEC; }
+  .sos-type-icon { font-size:28px; flex-shrink:0; }
+  .sos-type-name { font-family:'Georgia',serif; font-size:15px; font-weight:700; color:var(--dark); }
+  .sos-type-desc { font-size:11px; color:var(--grey); margin-top:2px; }
+  .sos-loc-box { border:2px solid #fee; border-radius:12px; padding:14px; background:#fff8f8; display:flex; align-items:center; gap:10px; cursor:pointer; margin-bottom:14px; transition:all 0.2s; }
+  .sos-loc-box.located { border-color:#E74C3C; background:#FDEDEC; }
+  .sos-loc-title { font-size:13px; font-weight:600; color:var(--dark); }
+  .sos-loc-sub { font-size:11px; color:var(--grey); }
+  .itinerary-box { background:#FFF3E0; border:1.5px solid #FF9800; border-radius:12px; padding:14px; margin-bottom:14px; display:none; }
+  .itinerary-box.show { display:block; }
+  .itinerary-title { font-size:12px; font-weight:700; color:#E65100; margin-bottom:8px; }
+  .itinerary-link { display:block; background:#FF9800; color:white; text-align:center; border-radius:10px; padding:10px; font-size:13px; font-weight:700; text-decoration:none; margin-bottom:6px; }
+  .itinerary-coords { font-size:10px; color:#888; text-align:center; }
+  .sos-call-btn { width:100%; background:#b71c1c; color:white; border:none; border-radius:14px; padding:16px; font-family:'Georgia',serif; font-size:16px; font-weight:700; cursor:pointer; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .sos-send-btn { width:100%; background:#E74C3C; color:white; border:none; border-radius:14px; padding:14px; font-family:'Georgia',serif; font-size:14px; font-weight:700; cursor:pointer; margin-bottom:8px; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .sos-cancel { width:100%; background:none; border:none; color:var(--grey); font-size:13px; cursor:pointer; padding:8px; }
+  #sos-success { display:none; position:fixed; inset:0; background:#b71c1c; z-index:1000; flex-direction:column; align-items:center; justify-content:center; padding:40px 24px; text-align:center; color:white; }
+  #sos-success.open { display:flex; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">Civic<span>Map</span> CI</div>
+  <div class="badge">📍 Adzopé</div>
+</div>
+<div class="hero">
+  <h1>Signalez un <em>problème</em><br>dans votre quartier</h1>
+  <p>Votre signalement est transmis directement à la Maison du Citoyen.</p>
+</div>
+<div class="wave"><svg viewBox="0 0 375 32"><path d="M0 0 Q187 40 375 0 L375 0 L0 0Z" fill="#1A7A4A"/><path d="M0 32 Q187 0 375 32 L375 32 L0 32Z" fill="#F9F5EE"/></svg></div>
+
+
+<!-- SOS URGENCE -->
+<div class="form-wrap" style="padding-top:16px;">
+  <button class="sos-banner" id="sos-btn">
+    <span class="sos-icon">🚨</span>
+    <div class="sos-text">
+      <div class="sos-title">URGENCE — Appeler les pompiers</div>
+      <div class="sos-sub">Accident · Incendie · Blessé grave · Envoi de position GPS</div>
+    </div>
+    <span class="sos-arrow">›</span>
+  </button>
+</div>
+
+<!-- MODAL SOS -->
+<div id="sos-modal">
+  <div class="sos-sheet">
+    <div class="sos-handle"></div>
+    <div class="sos-sheet-title">🚨 Signalement d'urgence</div>
+    <div class="sos-sheet-sub">Votre position GPS sera envoyée aux pompiers avec un itinéraire d'accès</div>
+
+    <div class="sos-types">
+      <button class="sos-type-btn" data-type="Accident de voiture">
+        <span class="sos-type-icon">🚗</span>
+        <div><div class="sos-type-name">Accident de voiture</div><div class="sos-type-desc">Collision, véhicule renversé, personnes bloquées</div></div>
+      </button>
+      <button class="sos-type-btn" data-type="Incendie">
+        <span class="sos-type-icon">🔥</span>
+        <div><div class="sos-type-name">Incendie</div><div class="sos-type-desc">Feu de maison, de forêt ou de véhicule</div></div>
+      </button>
+      <button class="sos-type-btn" data-type="Blessé grave">
+        <span class="sos-type-icon">🤕</span>
+        <div><div class="sos-type-name">Blessé grave</div><div class="sos-type-desc">Personne inconsciente ou en danger vital</div></div>
+      </button>
+    </div>
+
+    <div class="sos-loc-box" id="sos-loc-box">
+      <span style="font-size:20px">📍</span>
+      <div>
+        <div class="sos-loc-title" id="sos-loc-title">Détecter ma position GPS</div>
+        <div class="sos-loc-sub" id="sos-loc-sub">Indispensable pour guider les secours</div>
+      </div>
+    </div>
+
+    <div class="itinerary-box" id="itinerary-box">
+      <div class="itinerary-title">🗺️ Itinéraire généré pour les pompiers</div>
+      <a class="itinerary-link" id="itinerary-link" href="#" target="_blank">📱 Ouvrir l'itinéraire sur Google Maps</a>
+      <div class="itinerary-coords" id="itinerary-coords">—</div>
+    </div>
+
+    <a class="sos-call-btn" href="tel:180">📞 Appeler les Pompiers — 180</a>
+    <button class="sos-send-btn" id="sos-send-btn">📤 Envoyer position + signalement</button>
+    <button class="sos-cancel" id="sos-cancel">Annuler</button>
+  </div>
+</div>
+
+<!-- SOS SUCCESS -->
+<div id="sos-success">
+  <div style="font-size:72px;margin-bottom:20px;animation:pop 0.5s ease">🚒</div>
+  <h2 style="font-family:'Georgia',serif;font-size:26px;font-weight:800;margin-bottom:12px">Secours alertés !</h2>
+  <p style="font-size:14px;opacity:0.85;line-height:1.6;max-width:300px">Votre position GPS a été transmise. Les pompiers sont en route. Restez sur place et gardez votre téléphone avec vous.</p>
+  <div style="margin-top:24px;background:rgba(255,255,255,0.15);border-radius:12px;padding:16px 24px;">
+    <div style="font-size:11px;opacity:0.7;margin-bottom:4px">Numéro d'urgence pompiers CI</div>
+    <a href="tel:180" style="font-family:'Georgia',serif;font-size:28px;font-weight:800;color:#F4C842;text-decoration:none;">📞 180</a>
+  </div>
+  <button onclick="document.getElementById('sos-success').classList.remove('open');document.getElementById('sos-modal').classList.remove('open');" style="margin-top:28px;background:white;color:#b71c1c;border:none;border-radius:12px;padding:14px 32px;font-family:'Georgia',serif;font-size:15px;font-weight:700;cursor:pointer;">Fermer</button>
+</div>
+
+<div class="form-wrap">
+  <div class="steps-bar">
+    <div class="step-dot active" id="dot1"></div>
+    <div class="step-dot" id="dot2"></div>
+    <div class="step-dot" id="dot3"></div>
+    <div class="step-dot" id="dot4"></div>
+    <span class="step-label" id="step-label">Étape 1/4</span>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><div class="icon">🏷️</div>Type de problème</div>
+    <div class="cat-grid">
+      <button class="cat-btn" data-cat="Route / Voirie"><span class="cat-icon">🛣️</span><span class="cat-label">Route / Voirie</span></button>
+      <button class="cat-btn" data-cat="Eau / Inondation"><span class="cat-icon">💧</span><span class="cat-label">Eau / Inondation</span></button>
+      <button class="cat-btn" data-cat="Ordures"><span class="cat-icon">🗑️</span><span class="cat-label">Ordures / Déchets</span></button>
+      <button class="cat-btn" data-cat="Éclairage"><span class="cat-icon">💡</span><span class="cat-label">Éclairage public</span></button>
+      <button class="cat-btn" data-cat="Bâtiment public"><span class="cat-icon">🏛️</span><span class="cat-label">Bâtiment public</span></button>
+      <button class="cat-btn" data-cat="Autre"><span class="cat-icon">📌</span><span class="cat-label">Autre</span></button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><div class="icon">⚠️</div>Niveau d'urgence</div>
+    <div class="urgency-row">
+      <button class="urg-btn faible" data-urg="Faible">🟢 Faible</button>
+      <button class="urg-btn moyen"  data-urg="Moyen">🟡 Moyen</button>
+      <button class="urg-btn urgent" data-urg="Urgent">🔴 Urgent</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><div class="icon">📷</div>Photo du problème</div>
+    <div class="photo-zone" id="photo-zone">
+      <input type="file" accept="image/*" capture="environment" id="photo-input">
+      <div class="ph-icon">📸</div>
+      <div class="ph-text">Appuyez pour prendre une photo</div>
+      <div class="ph-sub">ou choisir depuis votre galerie</div>
+    </div>
+    <img id="photo-preview" alt="Aperçu">
+    <div style="margin-top:16px;">
+      <div class="card-title" style="margin-bottom:10px;"><div class="icon">✏️</div>Description</div>
+      <textarea rows="3" placeholder="Décrivez brièvement le problème…" id="desc-input"></textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><div class="icon">📍</div>Localisation</div>
+    <div class="loc-box" id="loc-box">
+      <span class="loc-icon">🗺️</span>
+      <div class="loc-text">
+        <div class="loc-title" id="loc-title">Utiliser ma position GPS</div>
+        <div class="loc-sub"   id="loc-sub">Appuyez pour localiser automatiquement</div>
+      </div>
+      <span class="loc-arrow">›</span>
+    </div>
+    <div style="margin-top:14px;">
+      <div style="font-size:12px;color:var(--grey);margin-bottom:8px;font-weight:500;">Quartier / Lieu-dit <span class="optional-tag">optionnel</span></div>
+      <input type="text" placeholder="Ex : Marché central, Rue de l'église…" id="quartier-input">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><div class="icon">👤</div>Votre nom <span class="optional-tag">optionnel</span></div>
+    <input type="text" placeholder="Anonyme si vide" id="name-input">
+  </div>
+
+  <button class="submit-btn" id="submit-btn">📤 Envoyer le signalement</button>
+  <p class="privacy-note">🔒 Vos données sont partagées uniquement avec la Maison du Citoyen.</p>
+</div>
+
+<div id="success-screen">
+  <div class="big-icon">✅</div>
+  <h2>Signalement envoyé !</h2>
+  <p>Merci. La Maison du Citoyen a bien reçu votre signalement.</p>
+  <div class="ref">
+    <div class="ref-label">Numéro de référence</div>
+    <div class="ref-num" id="ref-num">#ADZ-0000</div>
+  </div>
+  <button class="new-btn" id="new-btn">+ Nouveau signalement</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+// ——— SOS ———
+var sosType = null;
+var sosLat = null;
+var sosLng = null;
+
+document.getElementById('sos-btn').addEventListener('click', function() {
+  document.getElementById('sos-modal').classList.add('open');
+});
+document.getElementById('sos-cancel').addEventListener('click', function() {
+  document.getElementById('sos-modal').classList.remove('open');
+});
+
+document.querySelectorAll('.sos-type-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.sos-type-btn').forEach(function(b){ b.classList.remove('selected'); });
+    this.classList.add('selected');
+    sosType = this.dataset.type;
+  });
+});
+
+document.getElementById('sos-loc-box').addEventListener('click', function() {
+  var title = document.getElementById('sos-loc-title');
+  var sub   = document.getElementById('sos-loc-sub');
+  title.textContent = '📡 Localisation en cours…';
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      sosLat = pos.coords.latitude;
+      sosLng = pos.coords.longitude;
+      document.getElementById('sos-loc-box').classList.add('located');
+      title.textContent = '✅ Position détectée';
+      sub.textContent = sosLat.toFixed(5) + ', ' + sosLng.toFixed(5);
+
+      // Générer itinéraire Google Maps vers caserne pompiers Adzopé
+      var caserneLat = 6.1085;
+      var caserneLng = -3.8660;
+      var mapsUrl = 'https://www.google.com/maps/dir/' + sosLat + ',' + sosLng + '/' + caserneLat + ',' + caserneLng;
+      var reverseMapsUrl = 'https://www.google.com/maps/dir/' + caserneLat + ',' + caserneLng + '/' + sosLat + ',' + sosLng;
+
+      var box = document.getElementById('itinerary-box');
+      box.classList.add('show');
+      document.getElementById('itinerary-link').href = reverseMapsUrl;
+      document.getElementById('itinerary-coords').textContent = 'Depuis la caserne → Lat: ' + sosLat.toFixed(5) + ' / Lng: ' + sosLng.toFixed(5);
+    }, function() {
+      title.textContent = '⚠️ GPS non disponible';
+      sub.textContent = 'Activez la localisation sur votre téléphone';
+    });
+  }
+});
+
+document.getElementById('sos-send-btn').addEventListener('click', async function() {
+  if (!sosType) { alert('Choisissez le type d'urgence.'); return; }
+
+  this.textContent = '⏳ Envoi en cours…';
+  this.disabled = true;
+
+  var desc = sosType + (sosLat ? ' — Position GPS: ' + sosLat.toFixed(5) + ', ' + sosLng.toFixed(5) : '');
+  if (sosLat) {
+    desc += ' — Itinéraire pompiers: https://www.google.com/maps/dir/' + 6.1085 + ',' + (-3.8660) + '/' + sosLat + ',' + sosLng;
+  }
+
+  await supa.from('signalements').insert({
+    categorie: 'URGENCE — ' + sosType,
+    urgence: 'Urgent',
+    description: desc,
+    quartier: 'Urgence GPS',
+    latitude: sosLat,
+    longitude: sosLng,
+    auteur: 'SOS Automatique',
+    statut: 'en-attente'
+  });
+
+  document.getElementById('sos-success').classList.add('open');
+});
+
+</script>
+<script>
+var SUPA_URL = 'https://jndcrsqhrbllyshzxocc.supabase.co';
+var SUPA_KEY = 'sb_publishable_qOFrRwDj47DctpxElfsskw_SqVyqgfa';
+var supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+var selectedCat = null;
+var selectedUrg = null;
+var userLat = null;
+var userLng = null;
+
+// Catégories
+document.querySelectorAll('.cat-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.cat-btn').forEach(function(b){ b.classList.remove('selected'); });
+    this.classList.add('selected');
+    selectedCat = this.dataset.cat;
+    updateProgress();
+  });
+});
+
+// Urgence
+document.querySelectorAll('.urg-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.urg-btn').forEach(function(b){ b.classList.remove('selected'); });
+    this.classList.add('selected');
+    selectedUrg = this.dataset.urg;
+    updateProgress();
+  });
+});
+
+// Photo
+document.getElementById('photo-input').addEventListener('change', function() {
+  if (this.files && this.files[0]) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var prev = document.getElementById('photo-preview');
+      prev.src = e.target.result;
+      prev.style.display = 'block';
+      document.querySelector('.photo-zone .ph-icon').textContent = '✅';
+      document.querySelector('.photo-zone .ph-text').textContent = 'Photo ajoutée';
+    };
+    reader.readAsDataURL(this.files[0]);
+  }
+});
+
+// GPS
+document.getElementById('loc-box').addEventListener('click', function() {
+  var title = document.getElementById('loc-title');
+  var sub   = document.getElementById('loc-sub');
+  var box   = document.getElementById('loc-box');
+  title.textContent = '📡 Localisation en cours…';
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      userLat = pos.coords.latitude;
+      userLng = pos.coords.longitude;
+      box.classList.add('located');
+      title.textContent = '✅ Position détectée';
+      sub.textContent = userLat.toFixed(5) + ', ' + userLng.toFixed(5);
+      updateProgress();
+    }, function() {
+      title.textContent = '⚠️ Position non disponible';
+      sub.textContent = 'Précisez le quartier ci-dessous';
+    });
+  }
+});
+
+function updateProgress() {
+  var step = 1;
+  if (selectedCat) step = 2;
+  if (selectedCat && selectedUrg) step = 3;
+  if (selectedCat && selectedUrg && (userLat || document.getElementById('quartier-input').value)) step = 4;
+  ['dot1','dot2','dot3','dot4'].forEach(function(id, i) {
+    var dot = document.getElementById(id);
+    dot.className = 'step-dot';
+    if (i + 1 < step) dot.classList.add('done');
+    else if (i + 1 === step) dot.classList.add('active');
+  });
+  document.getElementById('step-label').textContent = 'Étape ' + Math.min(step, 4) + '/4';
+}
+
+// SUBMIT
+document.getElementById('submit-btn').addEventListener('click', async function() {
+  if (!selectedCat) { alert('Veuillez choisir un type de problème.'); return; }
+  if (!selectedUrg) { alert("Veuillez indiquer le niveau d'urgence."); return; }
+
+  var btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Envoi en cours…';
+
+  // Upload photo si présente
+  var photo_url = null;
+  var photoFile = document.getElementById('photo-input').files[0];
+  if (photoFile) {
+    var fileName = Date.now() + '_' + photoFile.name.replace(/[^a-zA-Z0-9.]/g, '_');
+    var uploadRes = await supa.storage.from('photos').upload(fileName, photoFile);
+    if (uploadRes.data) {
+      photo_url = supa.storage.from('photos').getPublicUrl(fileName).data.publicUrl;
+    }
+  }
+
+  // Insertion en base
+  var res = await supa.from('signalements').insert({
+    categorie:   selectedCat,
+    urgence:     selectedUrg,
+    description: document.getElementById('desc-input').value || null,
+    quartier:    document.getElementById('quartier-input').value || null,
+    latitude:    userLat,
+    longitude:   userLng,
+    auteur:      document.getElementById('name-input').value || 'Anonyme',
+    photo_url:   photo_url,
+    statut:      'en-attente'
+  });
+
+  if (res.error) {
+    alert('Erreur : ' + res.error.message);
+    btn.disabled = false;
+    btn.textContent = '📤 Envoyer le signalement';
+    return;
+  }
+
+  var refNum = '#ADZ-' + String(Math.floor(Math.random() * 9000) + 1000);
+  document.getElementById('ref-num').textContent = refNum;
+  var s = document.getElementById('success-screen');
+  s.style.display = 'flex';
+});
+
+// Reset
+document.getElementById('new-btn').addEventListener('click', function() {
+  document.getElementById('success-screen').style.display = 'none';
+  selectedCat = null; selectedUrg = null; userLat = null; userLng = null;
+  document.querySelectorAll('.cat-btn').forEach(function(b){ b.classList.remove('selected'); });
+  document.querySelectorAll('.urg-btn').forEach(function(b){ b.classList.remove('selected'); });
+  document.getElementById('photo-preview').style.display = 'none';
+  document.querySelector('.photo-zone .ph-icon').textContent = '📸';
+  document.querySelector('.photo-zone .ph-text').textContent = 'Appuyez pour prendre une photo';
+  document.getElementById('desc-input').value = '';
+  document.getElementById('quartier-input').value = '';
+  document.getElementById('name-input').value = '';
+  document.getElementById('loc-box').classList.remove('located');
+  document.getElementById('loc-title').textContent = 'Utiliser ma position GPS';
+  document.getElementById('loc-sub').textContent = 'Appuyez pour localiser automatiquement';
+  var btn = document.getElementById('submit-btn');
+  btn.disabled = false; btn.textContent = '📤 Envoyer le signalement';
+  updateProgress();
+  window.scrollTo({top:0, behavior:'smooth'});
+});
+</script>
+</body>
+</html>
